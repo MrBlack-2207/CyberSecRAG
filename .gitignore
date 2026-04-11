@@ -1,0 +1,32 @@
+# Virtual environments
+learnrag/
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment files
+.env
+
+# Data folders
+data/raw/
+data/processed/
+data/interim/
+*.jsonl
+*.faiss
+*.pkl
+*.parquet
+*.npy
+*.npz
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
