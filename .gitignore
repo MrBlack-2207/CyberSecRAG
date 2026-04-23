@@ -15,7 +15,13 @@ __pycache__/
 # Environment files
 .env
 
+.codex/
+
 # Data folders
+data/
+embeddings/
+index/
+models/
 data/raw/
 data/processed/
 data/interim/
@@ -25,6 +31,7 @@ data/interim/
 *.parquet
 *.npy
 *.npz
+*.pyc
 
 # OS/editor noise
 .DS_Store

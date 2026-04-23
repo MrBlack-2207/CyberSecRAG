@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSecRAG</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --panel: #111111;
+            --panel-border: rgba(0, 255, 136, 0.16);
+            --primary: #00ff88;
+            --secondary: #00b4d8;
+            --text: #f4fff9;
+            --muted: #9bd8c2;
+            --critical: #ff3b3b;
+            --high: #ff8c00;
+            --medium: #ffd700;
+            --low: #00ff88;
+            --error: #ff4d6d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Courier New", monospace;
+            background:
+                radial-gradient(circle at top, rgba(0, 180, 216, 0.14), transparent 32%),
+                linear-gradient(180deg, rgba(0, 255, 136, 0.05), transparent 30%),
+                var(--bg);
+            color: var(--text);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(0, 255, 136, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 216, 0.05) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent);
+        }
+
+        .shell {
+            position: relative;
+            width: min(1160px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+
+        .header-bar {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 24px;
+            border: 1px solid var(--panel-border);
+            border-radius: 18px;
+            background: rgba(17, 17, 17, 0.88);
+            box-shadow: 0 0 0 1px rgba(0, 180, 216, 0.08), 0 24px 60px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+        }
+
+        .title {
+            margin: 0;
+            color: var(--primary);
+            font-size: clamp(2rem, 4vw, 3.3rem);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-shadow: 0 0 16px rgba(0, 255, 136, 0.28);
+        }
+
+        .tagline {
+            margin: 6px 0 0;
+            color: var(--secondary);
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .status-chip {
+            color: var(--muted);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(0, 255, 136, 0.05);
+            white-space: nowrap;
+        }
+
+        .search-panel,
+        .answer-panel,
+        .sources-panel,
+        .error-panel {
+            margin-top: 24px;
+            padding: 24px;
+            border: 1px solid var(--panel-border);
+            border-radius: 18px;
+            background: rgba(17, 17, 17, 0.92);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.32);
+        }
+
+        .search-panel {
+            text-align: center;
+        }
+
+        .eyebrow {
+            margin: 0 0 14px;
+            color: var(--secondary);
+            letter-spacing: 0.18em;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .intro {
+            margin: 0 auto 20px;
+            max-width: 760px;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 0.98rem;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 160px;
+            gap: 14px;
+            align-items: center;
+        }
+
+        #queryInput {
+            width: 100%;
+            padding: 18px 20px;
+            border: 1px solid rgba(0, 255, 136, 0.45);
+            border-radius: 14px;
+            background: rgba(10, 10, 10, 0.96);
+            color: var(--text);
+            font: inherit;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: inset 0 0 0 1px rgba(0, 255, 136, 0.08);
+        }
+
+        #queryInput::placeholder {
+            color: rgba(155, 216, 194, 0.7);
+        }
+
+        #queryInput:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.14);
+        }
+
+        #searchButton {
+            height: 58px;
+            border: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), #05c36f);
+            color: #03110a;
+            font: inherit;
+            font-weight: bold;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            box-shadow: 0 12px 26px rgba(0, 255, 136, 0.18);
+        }
+
+        #searchButton:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 32px rgba(0, 255, 136, 0.22);
+        }
+
+        #searchButton:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .loading-indicator,
+        .answer-panel,
+        .sources-panel,
+        .error-panel {
+            display: none;
+        }
+
+        .loading-indicator.active,
+        .answer-panel.active,
+        .sources-panel.active,
+        .error-panel.active {
+            display: block;
+        }
+
+        .loading-indicator {
+            margin-top: 18px;
+            color: var(--primary);
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            animation: blink 1s steps(2, start) infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        .section-label {
+            display: inline-block;
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(0, 180, 216, 0.12);
+            color: var(--secondary);
+            font-size: 0.8rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .answer-text {
+            margin: 0;
+            white-space: pre-wrap;
+            color: var(--text);
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .error-panel {
+            border-color: rgba(255, 77, 109, 0.3);
+            color: var(--error);
+            background: rgba(46, 12, 18, 0.92);
+        }
+
+        .sources-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .cve-card {
+            position: relative;
+            overflow: hidden;
+            padding: 18px 18px 16px 22px;
+            border-left: 6px solid var(--primary);
+            border-radius: 14px;
+            background: #111111;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        }
+
+        .cve-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .cve-id {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .severity-badge,
+        .cvss-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .severity-badge {
+            color: #0a0a0a;
+            font-weight: bold;
+        }
+
+        .products {
+            margin: 0 0 10px;
+            color: var(--secondary);
+            font-size: 0.86rem;
+            line-height: 1.6;
+        }
+
+        .description {
+            margin: 0 0 12px;
+            color: var(--text);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        .card-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .nvd-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border: 1px solid rgba(0, 180, 216, 0.4);
+            border-radius: 999px;
+            color: var(--secondary);
+            text-decoration: none;
+            transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+        }
+
+        .nvd-link:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(0, 255, 136, 0.08);
+        }
+
+        @media (max-width: 780px) {
+            .header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+
+            #searchButton {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="header-bar">
+            <div>
+                <h1 class="title">CyberSecRAG</h1>
+                <p class="tagline">CVE Threat Intelligence &middot; Powered by RAG</p>
+            </div>
+            <div class="status-chip">Professor Demo Console</div>
+        </section>
+
+        <section class="search-panel">
+            <p class="eyebrow">Cybersecurity Retrieval Console</p>
+            <p class="intro">
+                Search a curated CVE knowledge base, retrieve the strongest vulnerability matches,
+                and generate a grounded explanation using retrieval-augmented generation.
+            </p>
+            <div class="search-row">
+                <input
+                    id="queryInput"
+                    type="text"
+                    placeholder="Describe a vulnerability or ask a question..."
+                    autocomplete="off"
+                >
+                <button id="searchButton" type="button">Search</button>
+            </div>
+            <div id="loadingIndicator" class="loading-indicator">[ SEARCHING CVE DATABASE... ]</div>
+        </section>
+
+        <section id="errorPanel" class="error-panel" aria-live="polite"></section>
+
+        <section id="answerPanel" class="answer-panel">
+            <span class="section-label">Analysis</span>
+            <p id="answerText" class="answer-text"></p>
+        </section>
+
+        <section id="sourcesPanel" class="sources-panel">
+            <span class="section-label">Source CVEs</span>
+            <div id="sourcesGrid" class="sources-grid"></div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
