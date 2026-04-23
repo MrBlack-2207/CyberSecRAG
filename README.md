@@ -210,9 +210,9 @@ jupyter notebook notebooks/04_autoencoder_eval.ipynb
 
 | Metric | Baseline (384-d) | Compressed (64-d) |
 | --- | --- | --- |
-| Index Size | ~XX MB | ~XX MB |
-| Avg Query Latency | ~X.XX ms | ~X.XX ms |
-| Avg Recall@5 | 100% (reference) | ~XX.X% |
+| Index Size | 96.7 MB | 16.1 MB |
+| Avg Query Latency | 9.30 ms | 1.60 ms |
+| Avg Recall@5 | 100% (reference) | 38.0% |
 | Similarity Score Trend | Higher-dimensional baseline distribution | Comparable compressed distribution |
 
 ## Academic Context
